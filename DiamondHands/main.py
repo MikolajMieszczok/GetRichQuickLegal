@@ -1,8 +1,11 @@
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import xlsxwriter
+import yfinance
+from datetime import datetime, timedelta
 
-#tu się źle zapisywało, i z jakiegoś powodu brało też nazwy firm w które inwestowali, ale usunąłem
+
+#tu się źle zapisywało, brało też nazwy firm w które inwestowali, ale usunąłem
 def filter_politicians(array):
     for x in range(len(array)):
         if(x%2 != 0):
@@ -16,6 +19,8 @@ def write_data_into_column(worksheet_temp, arr, column):
 def remove_even_indexes(arr):
     return [arr[i] for i in range(len(arr)) if i % 2 != 0]
 
+def remove_odd_indexes(arr):
+    return [arr[i] for i in range(len(arr)) if i % 2 == 0]
 
 def convert_date_format(date_str):
     month_map = {
@@ -55,6 +60,8 @@ def remove_items(test_list, item):
 url_start = "https://www.capitoltrades.com/trades?page="
 politicians = []
 stocks = []
+politicians_idx = []
+stocks_idx = []
 filed_after = []
 whether_buy = []
 date_filed = []
@@ -62,8 +69,14 @@ amount_bought = []
 year_bought = []
 temp_date = []
 temp_stock = []
+todays_date = []
+sixty_days_ago = []
+columns = ['F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+ 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK', 'AL', 'AM', 'AN', 'AO',
+ 'AP', 'AQ', 'AR', 'AS', 'AT', 'AU', 'AV', 'AW', 'AX', 'AY', 'AZ', 'BA', 'BB', 'BC', 'BD',
+ 'BE', 'BF', 'BG', 'BH', 'BI', 'BJ', 'BK', 'BL', 'BM', 'BN', 'BO', 'BP', 'BQ']
 
-for x in range(2, 288\5):
+for x in range(1, 3):
     url = url_start + str(x)
     page = urlopen(url)
     html_bytes = page.read()
@@ -101,13 +114,11 @@ for x in range(2, 288\5):
 remove_marital_status(year_bought)
 year_bought_temp = remove_items(year_bought, "Joint")
 year_bought_temp = remove_items(year_bought_temp, "Spouse")
-date_filed = remove_even_indexes(date_filed)
+date_filed = remove_odd_indexes(date_filed)
 filter_politicians(politicians)
 res_temp = remove_items(politicians, 0)
 res = remove_items(res_temp, "0")
-#remove_all_non_buy(res, stocks, filed_after, whether_buy, date_filed, year_bought)
-for x in date_filed:
-    temp_date.append(convert_date_format(x))
+remove_all_non_buy(res, stocks, filed_after, whether_buy, date_filed, year_bought)
 print("dane po zmianie\n\n\n\n")
 
 data_trans = []
@@ -148,16 +159,28 @@ print(p3)
 print(p4)
 print(p5)
 
-#ASSIGNS EACH POLITICIAN AN INDEX, SO IT CAN BE PASSED TO A MODEL
-unique_ids = {name: hash(name) for name in set(politicians)}
-print(unique_ids)
+
+unique_ids_polit = {name: hash(name) for name in set(politicians)}
+unique_ids_stock = {stock: hash(stock) for stock in set(stocks)}
+print(unique_ids_polit)
+print(unique_ids_stock)
+for polit in res:
+    politicians_idx.append(unique_ids_polit[polit])
+for stock in stocks:
+    stocks_idx.append(unique_ids_stock[stock])
+print(politicians_idx)
+print(stocks_idx)
+for x in range(len(year_bought)):
+    todays_date.append(datetime.now().strftime("%Y-%m-%d"))
+for x in range(len(year_bought)):
+    sixty_days_ago.append((datetime.now() + timedelta(days=-60)).strftime("%Y-%m-%d"))
 
 #Transfering Data to EXCEL
-workbook = xlsxwriter.Workbook("Politicians_Data.xlsx")
+workbook = xlsxwriter.Workbook("C:/Users/Mikołaj/Desktop/FIRSTEXCEL.xlsx")
 worksheet = workbook.add_worksheet()
 write_data_into_column(worksheet, res, "A")
 write_data_into_column(worksheet, stocks, "B")
 write_data_into_column(worksheet, filed_after, "C")
-write_data_into_column(worksheet, date_filed, "D")
-write_data_into_column(worksheet, year_bought, "E")
+write_data_into_column(worksheet, todays_date, "D")
+write_data_into_column(worksheet, sixty_days_ago, "E")
 workbook.close()
